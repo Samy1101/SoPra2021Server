@@ -2,7 +2,7 @@ package ch.uzh.ifi.hase.soprafs21.service;
 
 import ch.uzh.ifi.hase.soprafs21.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs21.entity.User;
-import ch.uzh.ifi.hase.soprafs21.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs21.repository.UserRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.InjectMocks;
@@ -11,12 +11,15 @@ import org.mockito.Mockito;
 import org.mockito.MockitoAnnotations;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import static org.junit.jupiter.api.Assertions.*;
 
 public class UserServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private UserRepo userRepo;
 
     @InjectMocks
     private UserService userService;
@@ -32,9 +35,14 @@ public class UserServiceTest {
         testUser.setId(1L);
         testUser.setName("testName");
         testUser.setUsername("testUsername");
+        /* Modified for user Story 1 */
+        testUser.setPassword("123");
+        testUser.setCreationDate(new SimpleDateFormat("dd-MM-yyyy HH:mm:ss").format(new Date()));
+        /* */
+
 
         // when -> any object is being save in the userRepository -> return the dummy testUser
-        Mockito.when(userRepository.save(Mockito.any())).thenReturn(testUser);
+        Mockito.when(userRepo.save(Mockito.any())).thenReturn(testUser);
     }
 
     @Test
@@ -42,14 +50,21 @@ public class UserServiceTest {
         // when -> any object is being save in the userRepository -> return the dummy testUser
         User createdUser = userService.createUser(testUser);
 
+        /* Modified for User Story 1 */
+       // createdUser.setPassword("123");
+
         // then
-        Mockito.verify(userRepository, Mockito.times(1)).save(Mockito.any());
+        Mockito.verify(userRepo, Mockito.times(1)).save(Mockito.any());
 
         assertEquals(testUser.getId(), createdUser.getId());
         assertEquals(testUser.getName(), createdUser.getName());
         assertEquals(testUser.getUsername(), createdUser.getUsername());
+        /* Modified for User Story 1 */
+        assertEquals(createdUser.getPassword(), testUser.getPassword());
+        assertNotNull(createdUser.getCreationDate());
+        /* */
         assertNotNull(createdUser.getToken());
-        assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
+        assertEquals(UserStatus.ONLINE, createdUser.getStatus());
     }
 
     @Test
@@ -58,8 +73,8 @@ public class UserServiceTest {
         userService.createUser(testUser);
 
         // when -> setup additional mocks for UserRepository
-        Mockito.when(userRepository.findByName(Mockito.any())).thenReturn(testUser);
-        Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(null);
+        Mockito.when(userRepo.findByName(Mockito.any())).thenReturn(testUser);
+        Mockito.when(userRepo.findByUsername(Mockito.any())).thenReturn(null);
 
         // then -> attempt to create second user with same user -> check that an error is thrown
         assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
@@ -71,12 +86,10 @@ public class UserServiceTest {
         userService.createUser(testUser);
 
         // when -> setup additional mocks for UserRepository
-        Mockito.when(userRepository.findByName(Mockito.any())).thenReturn(testUser);
-        Mockito.when(userRepository.findByUsername(Mockito.any())).thenReturn(testUser);
+        Mockito.when(userRepo.findByName(Mockito.any())).thenReturn(testUser);
+        Mockito.when(userRepo.findByUsername(Mockito.any())).thenReturn(testUser);
 
         // then -> attempt to create second user with same user -> check that an error is thrown
         assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser));
     }
-
-
 }

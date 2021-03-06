@@ -2,7 +2,7 @@ package ch.uzh.ifi.hase.soprafs21.service;
 
 import ch.uzh.ifi.hase.soprafs21.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs21.entity.User;
-import ch.uzh.ifi.hase.soprafs21.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs21.repository.UserRepo;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -12,6 +12,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
@@ -26,29 +28,70 @@ public class UserService {
 
     private final Logger log = LoggerFactory.getLogger(UserService.class);
 
-    private final UserRepository userRepository;
+    private final UserRepo userRepo;
 
     @Autowired
-    public UserService(@Qualifier("userRepository") UserRepository userRepository) {
-        this.userRepository = userRepository;
+    public UserService(@Qualifier("userRepository") UserRepo userRepo) {
+        this.userRepo = userRepo;
     }
 
     public List<User> getUsers() {
-        return this.userRepository.findAll();
+        return this.userRepo.findAll();
     }
 
     public User createUser(User newUser) {
+        /* Initialize Date formatter */
+        SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
+
         newUser.setToken(UUID.randomUUID().toString());
         newUser.setStatus(UserStatus.OFFLINE);
+        newUser.setCreationDate(formatter.format(new Date()));
 
         checkIfUserExists(newUser);
+        newUser.setStatus(UserStatus.ONLINE);
 
         // saves the given entity but data is only persisted in the database once flush() is called
-        newUser = userRepository.save(newUser);
-        userRepository.flush();
+        newUser = userRepo.save(newUser);
+        userRepo.flush();
 
         log.debug("Created Information for User: {}", newUser);
         return newUser;
+    }
+
+    /**
+     * This is a helper method that checks the entered credentials of a user,
+     * throws an exception if credentials are not valid
+     * @param userToLogin login credentials of a user
+     */
+    public User checkLoginCredentials(User userToLogin){
+        User userByUsername = userRepo.findByUsername(userToLogin.getUsername());
+        User userByPassword = userRepo.findByPassword(userToLogin.getPassword());
+
+
+        boolean valid = userByPassword != null && userByUsername == userByPassword;
+
+        if (!valid){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Username or Password false");
+        }
+        userByUsername.setStatus(UserStatus.ONLINE);
+        User mappedUser = userRepo.save(userByUsername);
+        userRepo.flush();
+
+        return mappedUser;
+    }
+
+    /**
+     * Sets the status of a user to OFFLINE once he logs out
+     * @param userToLogOut local storage user
+     * @return mappedUser in Repo
+     */
+    public User getUserToLogOut(User userToLogOut){
+        User mappedUser = userRepo.findByUsername(userToLogOut.getToken());
+        mappedUser.setStatus(UserStatus.OFFLINE);
+        mappedUser = userRepo.save(mappedUser);
+        userRepo.flush();
+
+        return mappedUser;
     }
 
     /**
@@ -60,8 +103,8 @@ public class UserService {
      * @see User
      */
     private void checkIfUserExists(User userToBeCreated) {
-        User userByUsername = userRepository.findByUsername(userToBeCreated.getUsername());
-        User userByName = userRepository.findByName(userToBeCreated.getName());
+        User userByUsername = userRepo.findByUsername(userToBeCreated.getUsername());
+        User userByName = userRepo.findByName(userToBeCreated.getName());
 
         String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
         if (userByUsername != null && userByName != null) {

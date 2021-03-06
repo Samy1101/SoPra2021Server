@@ -2,7 +2,7 @@ package ch.uzh.ifi.hase.soprafs21.service;
 
 import ch.uzh.ifi.hase.soprafs21.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs21.entity.User;
-import ch.uzh.ifi.hase.soprafs21.repository.UserRepository;
+import ch.uzh.ifi.hase.soprafs21.repository.UserRepo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,24 +24,28 @@ public class UserServiceIntegrationTest {
 
     @Qualifier("userRepository")
     @Autowired
-    private UserRepository userRepository;
+    private UserRepo userRepo;
 
     @Autowired
     private UserService userService;
 
     @BeforeEach
     public void setup() {
-        userRepository.deleteAll();
+        userRepo.deleteAll();
     }
 
     @Test
     public void createUser_validInputs_success() {
         // given
-        assertNull(userRepository.findByUsername("testUsername"));
+        assertNull(userRepo.findByUsername("testUsername"));
 
         User testUser = new User();
         testUser.setName("testName");
         testUser.setUsername("testUsername");
+
+        /* Modified for UserStory 1 */
+        testUser.setPassword("123");
+        /* */
 
         // when
         User createdUser = userService.createUser(testUser);
@@ -51,16 +55,19 @@ public class UserServiceIntegrationTest {
         assertEquals(testUser.getName(), createdUser.getName());
         assertEquals(testUser.getUsername(), createdUser.getUsername());
         assertNotNull(createdUser.getToken());
-        assertEquals(UserStatus.OFFLINE, createdUser.getStatus());
+        assertEquals(UserStatus.ONLINE, createdUser.getStatus());
     }
 
     @Test
     public void createUser_duplicateUsername_throwsException() {
-        assertNull(userRepository.findByUsername("testUsername"));
+        assertNull(userRepo.findByUsername("testUsername"));
 
         User testUser = new User();
         testUser.setName("testName");
         testUser.setUsername("testUsername");
+
+        testUser.setPassword("123");
+
         User createdUser = userService.createUser(testUser);
 
         // attempt to create second user with same username
@@ -69,6 +76,8 @@ public class UserServiceIntegrationTest {
         // change the name but forget about the username
         testUser2.setName("testName2");
         testUser2.setUsername("testUsername");
+
+        testUser2.setPassword("123");
 
         // check that an error is thrown
         assertThrows(ResponseStatusException.class, () -> userService.createUser(testUser2));
