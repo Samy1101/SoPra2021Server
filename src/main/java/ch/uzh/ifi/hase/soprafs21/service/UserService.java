@@ -64,11 +64,19 @@ public class UserService {
      * @param userToLogin login credentials of a user
      */
     public User checkLoginCredentials(User userToLogin){
-        User userByUsername = userRepo.findByUsername(userToLogin.getUsername());
-        User userByPassword = userRepo.findByPassword(userToLogin.getPassword());
+        User userByUsername = null;
+        List<User> usersByUsername = userRepo.findAll();
+
+        for (User user: usersByUsername){
+            if (user.getUsername().equals(userToLogin.getUsername())){
+                userByUsername = user;
+            }
+        }
+
+        String password = userToLogin.getPassword();
 
 
-        boolean valid = userByPassword != null && userByUsername == userByPassword;
+        boolean valid = userByUsername != null && userByUsername.getPassword().equals(password);
 
         if (!valid){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Username or Password false");
@@ -86,7 +94,7 @@ public class UserService {
      * @return mappedUser in Repo
      */
     public User getUserToLogOut(User userToLogOut){
-        User mappedUser = userRepo.findByUsername(userToLogOut.getToken());
+        User mappedUser = userRepo.findByUsername(userToLogOut.getUsername());
         mappedUser.setStatus(UserStatus.OFFLINE);
         mappedUser = userRepo.save(mappedUser);
         userRepo.flush();
