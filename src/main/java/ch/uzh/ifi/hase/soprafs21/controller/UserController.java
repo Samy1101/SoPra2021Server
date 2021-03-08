@@ -31,14 +31,9 @@ public class UserController {
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public UserGetDTO getSingleUser(@PathVariable(value="userID") Long userID){
-        Optional<User> optional = userService.getUser(userID);
-        User user = null;
-
-        if (optional.isPresent()){
-            user = optional.get();
-        }
-
-        return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
+        User fetched = userService.getUser(userID);
+        fetched.setToken(null);
+        return DTOMapper.INSTANCE.convertEntityToUserGetDTO(fetched);
     }
 
     @GetMapping("/users")
@@ -51,6 +46,7 @@ public class UserController {
 
         // convert each user to the API representation
         for (User user : users) {
+            user.setToken(null);
             userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
         }
         return userGetDTOs;

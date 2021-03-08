@@ -33,12 +33,20 @@ public class UserService {
         this.userRepo = userRepo;
     }
 
-    public Optional<User> getUser(Long userID){
-        Optional<User> user = this.userRepo.findById(userID);
-        if (user.isEmpty()){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This user does not exist");
+    public User getUser(Long userID){
+        User userByID = null;
+
+        List<User> usersByUsername = userRepo.findAll();
+
+        for (User user: usersByUsername){
+            if (user.getId().equals(userID)){
+                userByID = user;
+            }
         }
-        return user;
+        if (userByID == null){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
+        }
+        return userByID;
     }
 
     public List<User> getUsers() {
