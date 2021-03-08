@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 /**
  * User Controller
@@ -24,6 +25,20 @@ public class UserController {
 
     UserController(UserService userService) {
         this.userService = userService;
+    }
+
+    @GetMapping("/users/{userID}")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public UserGetDTO getSingleUser(@PathVariable(value="userID") Long userID){
+        Optional<User> optional = userService.getUser(userID);
+        User user = null;
+
+        if (optional.isPresent()){
+            user = optional.get();
+        }
+
+        return DTOMapper.INSTANCE.convertEntityToUserGetDTO(user);
     }
 
     @GetMapping("/users")

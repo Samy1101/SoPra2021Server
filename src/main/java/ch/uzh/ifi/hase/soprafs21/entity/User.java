@@ -90,7 +90,6 @@ public class User implements Serializable {
         this.status = status;
     }
 
-
     public String getCreationDate() {
         return creationDate;
     }

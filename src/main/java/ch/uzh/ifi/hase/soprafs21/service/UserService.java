@@ -13,9 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-import java.util.UUID;
+import java.util.*;
 
 /**
  * User Service
@@ -33,6 +31,14 @@ public class UserService {
     @Autowired
     public UserService(@Qualifier("userRepository") UserRepo userRepo) {
         this.userRepo = userRepo;
+    }
+
+    public Optional<User> getUser(Long userID){
+        Optional<User> user = this.userRepo.findById(userID);
+        if (user.isEmpty()){
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "This user does not exist");
+        }
+        return user;
     }
 
     public List<User> getUsers() {
@@ -64,25 +70,25 @@ public class UserService {
      * @param userToLogin login credentials of a user
      */
     public User checkLoginCredentials(User userToLogin){
-        User userByUsername = null;
+        User userByToken = null;
         List<User> usersByUsername = userRepo.findAll();
 
         for (User user: usersByUsername){
             if (user.getUsername().equals(userToLogin.getUsername())){
-                userByUsername = user;
+                userByToken = user;
             }
         }
 
         String password = userToLogin.getPassword();
 
 
-        boolean valid = userByUsername != null && userByUsername.getPassword().equals(password);
+        boolean valid = userByToken != null && userByToken.getPassword().equals(password);
 
         if (!valid){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Username or Password false");
         }
-        userByUsername.setStatus(UserStatus.ONLINE);
-        User mappedUser = userRepo.save(userByUsername);
+        userByToken.setStatus(UserStatus.ONLINE);
+        User mappedUser = userRepo.save(userByToken);
         userRepo.flush();
 
         return mappedUser;
@@ -94,7 +100,7 @@ public class UserService {
      * @return mappedUser in Repo
      */
     public User getUserToLogOut(User userToLogOut){
-        User mappedUser = userRepo.findByUsername(userToLogOut.getUsername());
+        User mappedUser = userRepo.findByToken(userToLogOut.getToken());
         mappedUser.setStatus(UserStatus.OFFLINE);
         mappedUser = userRepo.save(mappedUser);
         userRepo.flush();
