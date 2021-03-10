@@ -33,6 +33,24 @@ public class UserService {
         this.userRepo = userRepo;
     }
 
+    public void updateUser(Long userID, String newUsername){
+        //fetch
+        User fetched = getUser(userID);
+        
+        if (newUsername != null){
+            fetched.setUsername(newUsername);
+        }
+
+        /* add to user and implement
+        if (newBirthday != null){
+            fetched.setBirthday(newBirthday);
+        } */
+
+        userRepo.save(fetched);
+        userRepo.flush();
+
+    }
+
     public User getUser(Long userID){
         User userByID = null;
 

@@ -98,4 +98,19 @@ public class UserController {
         return DTOMapper.INSTANCE.convertEntityToUserGetDTO(mappedUser);
     }
 
+    /* Code for updating user info */
+    @PutMapping("/users/{userID}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    public void updateUser(@RequestBody UserPostDTO userPostDTO, @PathVariable(value="userID") Long userID){
+        // get variables that have to change
+        User toChange = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
+
+        String newUsername = toChange.getUsername();
+
+        /*to be added to the user class
+        Date newBirthday = toChange.getBirthday */
+
+        userService.updateUser(userID, newUsername);
+    }
+
 }
