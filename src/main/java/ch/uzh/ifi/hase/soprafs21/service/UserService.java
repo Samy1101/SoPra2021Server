@@ -33,7 +33,7 @@ public class UserService {
         this.userRepo = userRepo;
     }
 
-    public void updateUser(Long userID, String newUsername){
+    public void updateUser(Long userID, String newUsername, String newBirthdayDate){
         //fetch
         User fetched = getUser(userID);
         
@@ -41,10 +41,9 @@ public class UserService {
             fetched.setUsername(newUsername);
         }
 
-        /* add to user and implement
-        if (newBirthday != null){
-            fetched.setBirthday(newBirthday);
-        } */
+        if (newBirthdayDate != null){
+            fetched.setBirthDate(newBirthdayDate);
+        }
 
         userRepo.save(fetched);
         userRepo.flush();
@@ -106,7 +105,6 @@ public class UserService {
         }
 
         String password = userToLogin.getPassword();
-
 
         boolean valid = userByToken != null && userByToken.getPassword().equals(password);
 

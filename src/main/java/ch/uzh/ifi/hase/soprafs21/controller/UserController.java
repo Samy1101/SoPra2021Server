@@ -1,6 +1,5 @@
 package ch.uzh.ifi.hase.soprafs21.controller;
 
-import ch.uzh.ifi.hase.soprafs21.constant.UserStatus;
 import ch.uzh.ifi.hase.soprafs21.entity.User;
 import ch.uzh.ifi.hase.soprafs21.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs21.rest.dto.UserPostDTO;
@@ -11,7 +10,6 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * User Controller
@@ -107,10 +105,9 @@ public class UserController {
 
         String newUsername = toChange.getUsername();
 
-        /*to be added to the user class
-        Date newBirthday = toChange.getBirthday */
+        String newBirthday = toChange.getBirthDate();
 
-        userService.updateUser(userID, newUsername);
+        userService.updateUser(userID, newUsername, newBirthday);
     }
 
 }
