@@ -3,6 +3,7 @@ package ch.uzh.ifi.hase.soprafs21.rest.mapper;
 import ch.uzh.ifi.hase.soprafs21.entity.Location;
 import ch.uzh.ifi.hase.soprafs21.entity.User;
 import ch.uzh.ifi.hase.soprafs21.rest.dto.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs21.rest.dto.UserGetNoTokenDTO;
 import ch.uzh.ifi.hase.soprafs21.rest.dto.UserPostDTO;
 import org.mapstruct.*;
 import org.mapstruct.factory.Mappers;
@@ -35,4 +36,13 @@ public interface DTOMapper {
     @Mapping(source = "token", target = "token")
     @Mapping(source = "birthDate", target = "birthDate")
     UserGetDTO convertEntityToUserGetDTO(User user);
+
+    // Added mapping, does not return a token
+    @Mapping(source = "id", target = "id")
+    @Mapping(source = "name", target = "name")
+    @Mapping(source = "username", target = "username")
+    @Mapping(source = "status", target = "status")
+    @Mapping(source = "creationDate", target = "creationDate")
+    @Mapping(source = "birthDate", target = "birthDate")
+    UserGetNoTokenDTO convertEntityToUserGetNoTokenDTO(User user);
 }

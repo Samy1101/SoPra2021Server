@@ -3,11 +3,13 @@ package ch.uzh.ifi.hase.soprafs21.controller;
 import ch.uzh.ifi.hase.soprafs21.entity.Location;
 import ch.uzh.ifi.hase.soprafs21.entity.User;
 import ch.uzh.ifi.hase.soprafs21.rest.dto.UserGetDTO;
+import ch.uzh.ifi.hase.soprafs21.rest.dto.UserGetNoTokenDTO;
 import ch.uzh.ifi.hase.soprafs21.rest.dto.UserPostDTO;
 import ch.uzh.ifi.hase.soprafs21.rest.mapper.DTOMapper;
 import ch.uzh.ifi.hase.soprafs21.service.UserService;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,41 +28,55 @@ public class UserController {
         this.userService = userService;
     }
 
-    @GetMapping("users/{userID}/token")
+    @GetMapping("users/{userID}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public UserGetDTO getToken(@PathVariable(value = "userID") Long userID){
         User fetched = userService.getUser(userID);
 
+        // Used for the registration, only time a token gets returned
+        // Token is then stored in localStorage
         return DTOMapper.INSTANCE.convertEntityToUserGetDTO(fetched);
     }
 
-    @GetMapping("/users/{userID}")
+    @GetMapping("/users/{userID}/{userToken}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public UserGetDTO getSingleUser(@PathVariable(value="userID") Long userID){
+    public UserGetNoTokenDTO getSingleUser(@PathVariable(value="userID") Long userID, @PathVariable(value="userToken") String token){
         // Fetch a single user corresponding to the userID
         User fetched = userService.getUser(userID);
-        fetched.setToken(null);
+
+        boolean valid = false;
+        List<User> users = userService.getUsers();
+
+        for (User user : users) {
+            if (token.equals(user.getToken())) {
+                valid = true;
+                break;
+            }
+        }
+
+        if (!valid){
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED);
+        }
 
         // Return fetched User
-        return DTOMapper.INSTANCE.convertEntityToUserGetDTO(fetched);
+        return DTOMapper.INSTANCE.convertEntityToUserGetNoTokenDTO(fetched);
     }
 
     @GetMapping("/users")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
-    public List<UserGetDTO> getAllUsers() {
+    public List<UserGetNoTokenDTO> getAllUsers() {
         // fetch all users in the internal representation
         List<User> users = userService.getUsers();
-        List<UserGetDTO> userGetDTOs = new ArrayList<>();
+        List<UserGetNoTokenDTO> userGetNoTokenDTOs = new ArrayList<>();
 
         // convert each user to the API representation
         for (User user : users) {
-            user.setToken(null);
-            userGetDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetDTO(user));
+            userGetNoTokenDTOs.add(DTOMapper.INSTANCE.convertEntityToUserGetNoTokenDTO(user));
         }
-        return userGetDTOs;
+        return userGetNoTokenDTOs;
     }
 
 
@@ -75,7 +91,7 @@ public class UserController {
         User createdUser = userService.createUser(userInput);
 
         Location location = new Location();
-        location.setLocation("/users/" + createdUser.getId() + "/token");
+        location.setLocation("/users/" + createdUser.getId());
 
         return location;
     }
