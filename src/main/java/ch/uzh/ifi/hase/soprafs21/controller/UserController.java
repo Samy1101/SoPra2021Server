@@ -1,5 +1,6 @@
 package ch.uzh.ifi.hase.soprafs21.controller;
 
+import ch.uzh.ifi.hase.soprafs21.entity.Location;
 import ch.uzh.ifi.hase.soprafs21.entity.User;
 import ch.uzh.ifi.hase.soprafs21.rest.dto.UserGetDTO;
 import ch.uzh.ifi.hase.soprafs21.rest.dto.UserPostDTO;
@@ -25,12 +26,24 @@ public class UserController {
         this.userService = userService;
     }
 
+    @GetMapping("users/{userID}/token")
+    @ResponseStatus(HttpStatus.OK)
+    @ResponseBody
+    public UserGetDTO getToken(@PathVariable(value = "userID") Long userID){
+        User fetched = userService.getUser(userID);
+
+        return DTOMapper.INSTANCE.convertEntityToUserGetDTO(fetched);
+    }
+
     @GetMapping("/users/{userID}")
     @ResponseStatus(HttpStatus.OK)
     @ResponseBody
     public UserGetDTO getSingleUser(@PathVariable(value="userID") Long userID){
+        // Fetch a single user corresponding to the userID
         User fetched = userService.getUser(userID);
         fetched.setToken(null);
+
+        // Return fetched User
         return DTOMapper.INSTANCE.convertEntityToUserGetDTO(fetched);
     }
 
@@ -54,16 +67,17 @@ public class UserController {
     /* Code for registering a user */
     @PostMapping("/users")
     @ResponseStatus(HttpStatus.CREATED)
-    @ResponseBody
-    public UserGetDTO createUser(@RequestBody UserPostDTO userPostDTO) {
+    public Location createUser(@RequestBody UserPostDTO userPostDTO) {
         // convert API user to internal representation
         User userInput = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
 
         // create user
         User createdUser = userService.createUser(userInput);
 
-        // convert internal representation of user back to API
-        return DTOMapper.INSTANCE.convertEntityToUserGetDTO(createdUser);
+        Location location = new Location();
+        location.setLocation("/users/" + createdUser.getId() + "/token");
+
+        return location;
     }
 
 
@@ -91,6 +105,7 @@ public class UserController {
         //get loggedIn user from local storage and convert to internal representation
         User loggedIn = DTOMapper.INSTANCE.convertUserPostDTOtoEntity(userPostDTO);
 
+        // log the user out
         User mappedUser = userService.getUserToLogOut(loggedIn);
 
         return DTOMapper.INSTANCE.convertEntityToUserGetDTO(mappedUser);

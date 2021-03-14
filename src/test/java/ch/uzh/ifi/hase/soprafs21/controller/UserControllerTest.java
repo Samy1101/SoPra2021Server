@@ -23,8 +23,8 @@ import java.util.List;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.is;
 import static org.mockito.BDDMockito.given;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -41,6 +41,94 @@ public class UserControllerTest {
 
     @MockBean
     private UserService userService;
+
+
+
+    /*
+        Tests for PUT Mappings
+     */
+    @Test
+    public void givenNoUser_whenPutUser_thenNotFound() throws Exception{
+        //given: nothing
+
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername("Test User");
+        userPostDTO.setBirthDate("testBirthday");
+
+        doThrow(new ResponseStatusException(HttpStatus.NOT_FOUND)).when(userService).updateUser(1L, userPostDTO.getUsername(), userPostDTO.getBirthDate());
+
+        MockHttpServletRequestBuilder putRequest = put("/users/1")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));;
+
+        mockMvc.perform(putRequest).andExpect(status().isNotFound());
+    }
+
+
+    @Test
+    public void givenUser_whenPutUser_thenNoContent() throws Exception{
+        // given
+        User user = new User();
+        user.setName("Firstname Lastname");
+        user.setUsername("firstname@lastname");
+        user.setId(1L);
+        user.setStatus(UserStatus.OFFLINE);
+
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setUsername("Test User");
+        userPostDTO.setBirthDate("testBirthday");
+
+        // Try request to change username and Birthday
+        MockHttpServletRequestBuilder putRequest = put("/users/" + user.getId())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));;
+
+        mockMvc.perform(putRequest).andExpect(status().isNoContent());
+
+    }
+
+    /*
+        Tests for GET Mappings
+     */
+    @Test
+    public void givenUser_whenGetUser_thenError() throws Exception{
+        // given
+        User user = new User();
+        user.setName("Firstname Lastname");
+        user.setUsername("firstname@lastname");
+        user.setId(1L);
+        user.setStatus(UserStatus.OFFLINE);
+
+        given(userService.getUser(2L)).willThrow(new ResponseStatusException(HttpStatus.NOT_FOUND));
+
+        // when
+        MockHttpServletRequestBuilder getRequest = get("/users/2").contentType(MediaType.APPLICATION_JSON);
+
+        // then
+        mockMvc.perform(getRequest).andExpect(status().isNotFound());
+    }
+
+    @Test
+    public void givenUser_whenGetUser_thenReturnJsonArray() throws Exception{
+        // given
+        User user = new User();
+        user.setName("Firstname Lastname");
+        user.setUsername("firstname@lastname");
+        user.setId(1L);
+        user.setStatus(UserStatus.OFFLINE);
+
+        given(userService.getUser(user.getId())).willReturn(user);
+
+        // when
+        MockHttpServletRequestBuilder getRequest = get("/users/" + user.getId()).contentType(MediaType.APPLICATION_JSON);
+
+        // then
+        mockMvc.perform(getRequest).andExpect(status().isOk())
+                .andExpect(jsonPath("$.name", is(user.getName())))
+                .andExpect(jsonPath("$.username", is(user.getUsername())))
+                .andExpect(jsonPath("$.id", is(user.getId().intValue())))
+                .andExpect(jsonPath("$.status", is(user.getStatus().toString())));
+    }
 
     @Test
     public void givenUsers_whenGetUsers_thenReturnJsonArray() throws Exception {
@@ -64,6 +152,36 @@ public class UserControllerTest {
                 .andExpect(jsonPath("$[0].name", is(user.getName())))
                 .andExpect(jsonPath("$[0].username", is(user.getUsername())))
                 .andExpect(jsonPath("$[0].status", is(user.getStatus().toString())));
+    }
+
+
+    /*
+        Tests for POST Mappings
+     */
+    @Test
+    public void createUser_invalidInput_errorThrown() throws Exception {
+        // given
+        User user = new User();
+        user.setId(1L);
+        user.setName("Test User");
+        user.setUsername("testUsername");
+        user.setToken("1");
+        user.setStatus(UserStatus.ONLINE);
+
+        given(userService.createUser(Mockito.any())).willThrow(new ResponseStatusException(HttpStatus.CONFLICT));
+
+        UserPostDTO userPostDTO = new UserPostDTO();
+        userPostDTO.setName("Test User");
+        userPostDTO.setUsername("testUsername");
+
+        // when/then -> do the request + validate the result
+        MockHttpServletRequestBuilder postRequest = post("/users")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(asJsonString(userPostDTO));
+
+        // then
+        mockMvc.perform(postRequest)
+                .andExpect(status().isConflict());
     }
 
     @Test
@@ -90,10 +208,7 @@ public class UserControllerTest {
         // then
         mockMvc.perform(postRequest)
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(user.getId().intValue())))
-                .andExpect(jsonPath("$.name", is(user.getName())))
-                .andExpect(jsonPath("$.username", is(user.getUsername())))
-                .andExpect(jsonPath("$.status", is(user.getStatus().toString())));
+                .andExpect(jsonPath("$.location", is("/users/" + user.getId() + "/token")));
     }
 
     /**

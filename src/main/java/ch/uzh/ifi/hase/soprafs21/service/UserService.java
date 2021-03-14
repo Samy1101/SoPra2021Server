@@ -33,10 +33,21 @@ public class UserService {
         this.userRepo = userRepo;
     }
 
+    /**
+     * Helper Function to update user information
+     * @param userID ID of the user that has to be updated
+     * @param newUsername new Username; if null will not get changed
+     * @param newBirthdayDate new BirthDayDate; if null will not get changed
+     */
     public void updateUser(Long userID, String newUsername, String newBirthdayDate){
-        //fetch
+        //fetch user to update
         User fetched = getUser(userID);
-        
+
+        if (fetched == null){
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND);
+        }
+
+        // apply changes
         if (newUsername != null){
             fetched.setUsername(newUsername);
         }
@@ -45,14 +56,21 @@ public class UserService {
             fetched.setBirthDate(newBirthdayDate);
         }
 
+        // Save and flush the changed user
         userRepo.save(fetched);
         userRepo.flush();
 
     }
 
+    /**
+     * Helper function to fetch one specific User from the repo
+     * @param userID ID of the user to fetch
+     * @return fetched user
+     */
     public User getUser(Long userID){
         User userByID = null;
 
+        // Search for user in repo
         List<User> usersByUsername = userRepo.findAll();
 
         for (User user: usersByUsername){
@@ -60,8 +78,10 @@ public class UserService {
                 userByID = user;
             }
         }
+
+        // If no user is found, throw 400 Error
         if (userByID == null){
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "User not found");
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "User not found");
         }
         return userByID;
     }
@@ -70,6 +90,11 @@ public class UserService {
         return this.userRepo.findAll();
     }
 
+    /**
+     * Helper function to create a new User
+     * @param newUser User to be created
+     * @return The user that was created
+     */
     public User createUser(User newUser) {
         /* Initialize Date formatter */
         SimpleDateFormat formatter = new SimpleDateFormat("dd-MM-yyyy HH:mm:ss");
@@ -95,24 +120,27 @@ public class UserService {
      * @param userToLogin login credentials of a user
      */
     public User checkLoginCredentials(User userToLogin){
-        User userByToken = null;
-        List<User> usersByUsername = userRepo.findAll();
+        User userByUsername = null;
+        List<User> allUsers = userRepo.findAll();
 
-        for (User user: usersByUsername){
+        // Fetch all users and search for username
+        for (User user: allUsers){
             if (user.getUsername().equals(userToLogin.getUsername())){
-                userByToken = user;
+                userByUsername = user;
             }
         }
 
         String password = userToLogin.getPassword();
 
-        boolean valid = userByToken != null && userByToken.getPassword().equals(password);
+        // Check if a user was found and if its password is valid
+        boolean valid = userByUsername != null && userByUsername.getPassword().equals(password);
 
+        // Throw exception if credentials are not valid
         if (!valid){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "Username or Password false");
         }
-        userByToken.setStatus(UserStatus.ONLINE);
-        User mappedUser = userRepo.save(userByToken);
+        userByUsername.setStatus(UserStatus.ONLINE);
+        User mappedUser = userRepo.save(userByUsername);
         userRepo.flush();
 
         return mappedUser;
@@ -124,8 +152,13 @@ public class UserService {
      * @return mappedUser in Repo
      */
     public User getUserToLogOut(User userToLogOut){
+        // Find user in repo
         User mappedUser = userRepo.findByToken(userToLogOut.getToken());
+
+        // Set its status to OFFLINE
         mappedUser.setStatus(UserStatus.OFFLINE);
+
+        // Save new Status
         mappedUser = userRepo.save(mappedUser);
         userRepo.flush();
 
@@ -146,13 +179,13 @@ public class UserService {
 
         String baseErrorMessage = "The %s provided %s not unique. Therefore, the user could not be created!";
         if (userByUsername != null && userByName != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username and the name", "are"));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(baseErrorMessage, "username and the name", "are"));
         }
         else if (userByUsername != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "username", "is"));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(baseErrorMessage, "username", "is"));
         }
         else if (userByName != null) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, String.format(baseErrorMessage, "name", "is"));
+            throw new ResponseStatusException(HttpStatus.CONFLICT, String.format(baseErrorMessage, "name", "is"));
         }
     }
 }
